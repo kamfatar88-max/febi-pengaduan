@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard Pengaduan - FEBI UINSI</title>
+  <title>Layanan Pengaduan FEBI UINSI</title>
   <style>
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -42,11 +42,8 @@
       background: #e9ecef;
       border-radius: 8px 8px 0 0;
       font-weight: 600;
-      transition: 0.3s;
     }
-    .tab:hover {
-      background: #dde2e6;
-    }
+    .tab:hover { background: #dde2e6; }
     .tab.active {
       background: #007bff;
       color: white;
@@ -76,9 +73,6 @@
       cursor: pointer;
       font-weight: bold;
     }
-    button:hover {
-      background: #0056b3;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -89,17 +83,11 @@
       text-align: left;
       border-bottom: 1px solid #ddd;
     }
-    th {
-      background: #f1f1f1;
-    }
-    tr:hover {
-      background: #f9f9f9;
-    }
+    th { background: #f1f1f1; }
     .no-data {
       text-align: center;
       padding: 30px;
       color: #888;
-      font-style: italic;
     }
     .form-respon {
       margin-top: 20px;
@@ -111,18 +99,13 @@
     .export-btn {
       background: #28a745;
     }
-    .export-btn:hover {
-      background: #218838;
-    }
   </style>
 </head>
 <body>
-
   <div class="container">
-    <h1>LAYANAN PENGADUAN</h1>
+    <h1>Layanan Pengaduan FEBI UINSI</h1>
     <p class="subtitle">Fakultas Ekonomi dan Bisnis Islam - Universitas Islam Negeri Samarinda</p>
 
-    <!-- Tabs -->
     <div class="tabs">
       <div class="tab active" onclick="openTab('input')">Input Pengaduan</div>
       <div class="tab" onclick="openTab('respon')">Respon Pengaduan</div>
@@ -130,7 +113,6 @@
       <div class="tab" onclick="openTab('statistik')">Statistik</div>
     </div>
 
-    <!-- Tab: Input Pengaduan -->
     <div id="input" class="tab-content active">
       <h2>Formulir Pengaduan</h2>
       <input type="text" id="nama" placeholder="Nama Lengkap" required />
@@ -144,16 +126,14 @@
       <button onclick="submitPengaduan()">Kirim Pengaduan</button>
     </div>
 
-    <!-- Tab: Respon Pengaduan -->
     <div id="respon" class="tab-content">
       <h2>Daftar Pengaduan untuk Ditanggapi</h2>
-      <p>Klik "Tanggapi" untuk mengisi respons terhadap pengaduan.</p>
       <table id="tabelRespon">
         <thead>
           <tr>
             <th>Nama</th>
             <th>Jabatan</th>
-            <th>Aduan (Ringkasan)</th>
+            <th>Aduan</th>
             <th>Status</th>
             <th>Aksi</th>
           </tr>
@@ -162,7 +142,6 @@
       </table>
     </div>
 
-    <!-- Tab: Data Pengaduan -->
     <div id="data" class="tab-content">
       <h2>Matrik Data Pengaduan</h2>
       <button class="export-btn" onclick="exportToCSV()">📤 Export ke CSV</button>
@@ -184,7 +163,6 @@
       </table>
     </div>
 
-    <!-- Tab: Statistik -->
     <div id="statistik" class="tab-content">
       <h2>Statistik Pengaduan</h2>
       <div style="background:#e3f2fd; padding:15px; border-radius:8px;">
@@ -197,26 +175,32 @@
     </div>
   </div>
 
-  <!-- Script -->
   <script>
-    // Ambil data dari localStorage
-    let pengaduanList = JSON.parse(localStorage.getItem("pengaduanList")) || [];
-    let responList = JSON.parse(localStorage.getItem("responList")) || {};
+    // GANTI DENGAN URL WEB APP ANDA
+    const API_URL = "https://script.google.com/macros/s/YOUR-DEPLOYMENT-ID/exec";
 
-    // Buka tab
+    let allData = [];
+
+    async function loadData() {
+      try {
+        const res = await fetch(API_URL);
+        allData = await res.json();
+        renderRespon();
+        renderData();
+        renderStatistik();
+      } catch (e) {
+        console.error("Gagal muat data:", e);
+      }
+    }
+
     function openTab(tabName) {
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
       document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
       document.getElementById(tabName).classList.add("active");
       document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add("active");
-
-      if (tabName === "respon") renderRespon();
-      if (tabName === "data") renderData();
-      if (tabName === "statistik") renderStatistik();
     }
 
-    // Kirim pengaduan
-    function submitPengaduan() {
+    async function submitPengaduan() {
       const nama = document.getElementById("nama").value.trim();
       const jabatan = document.getElementById("jabatan").value;
       const isiAduan = document.getElementById("isiAduan").value.trim();
@@ -226,55 +210,28 @@
         return;
       }
 
-      const newPengaduan = {
+      const data = {
+        type: "pengaduan",
         id: Date.now().toString(),
         nama,
         jabatan,
         isiAduan
       };
 
-      pengaduanList.push(newPengaduan);
-      localStorage.setItem("pengaduanList", JSON.stringify(pengaduanList));
-
-      alert("Pengaduan berhasil dikirim!");
-      document.getElementById("nama").value = "";
-      document.getElementById("jabatan").value = "";
-      document.getElementById("isiAduan").value = "";
-
-      renderRespon();
-      renderData();
-      renderStatistik();
-    }
-
-    // Render daftar pengaduan untuk respons
-    function renderRespon() {
-      const tbody = document.querySelector("#tabelRespon tbody");
-      tbody.innerHTML = "";
-
-      if (pengaduanList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="no-data">Belum ada pengaduan dari pengguna.</td></tr>`;
-        return;
+      try {
+        await fetch(API_URL, { method: "POST", body: JSON.stringify(data) });
+        alert("Pengaduan berhasil dikirim!");
+        document.getElementById("nama").value = "";
+        document.getElementById("jabatan").value = "";
+        document.getElementById("isiAduan").value = "";
+        loadData();
+      } catch (e) {
+        alert("Gagal mengirim. Cek koneksi.");
       }
-
-      pengaduanList.forEach(item => {
-        const status = responList[item.id] ? "Selesai" : "Belum";
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${item.nama}</td>
-          <td>${item.jabatan}</td>
-          <td title="${item.isiAduan}">${item.isiAduan.substring(0, 60)}${item.isiAduan.length > 60 ? "..." : ""}</td>
-          <td><span style="color: ${status === 'Selesai' ? 'green' : 'red'}; font-weight: bold;">${status}</span></td>
-          <td><button onclick="showResponseForm('${item.id}', '${item.nama.replace(/'/g, "\\'")}', '${item.isiAduan.replace(/'/g, "\\'")}')">Tanggapi</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
     }
 
-    // Tampilkan form respons terpisah
     function showResponseForm(id, nama, aduan) {
       const container = document.querySelector("#respon");
-      container.innerHTML += ''; // Clear form lama
-
       const formHtml = `
         <div class="form-respon" id="form-respon">
           <h3>Respon untuk: ${nama}</h3>
@@ -283,17 +240,16 @@
           <input type="text" id="identifikasi" placeholder="Identifikasi Masalah" />
           <input type="text" id="sumber" placeholder="Sumber Masalah" />
           <textarea id="rencana" placeholder="Rencana Aksi" rows="3"></textarea>
-          <input type="date" id="waktu" placeholder="Waktu Penyelesaian" />
+          <input type="date" id="waktu" />
           <input type="text" id="penanggungJawab" placeholder="Penanggung Jawab" />
           <button onclick="saveResponse()">Simpan Respon</button>
-          <button type="button" style="background:#6c757d; margin-top:10px;" onclick="closeResponseForm()">Batal</button>
+          <button type="button" style="background:#6c757d;margin-top:10px;" onclick="closeResponseForm()">Batal</button>
         </div>
       `;
       container.insertAdjacentHTML("beforeend", formHtml);
     }
 
-    // Simpan respons
-    function saveResponse() {
+    async function saveResponse() {
       const id = document.getElementById("respon-id").value;
       const identifikasi = document.getElementById("identifikasi").value.trim();
       const sumber = document.getElementById("sumber").value.trim();
@@ -302,59 +258,83 @@
       const penanggungJawab = document.getElementById("penanggungJawab").value.trim();
 
       if (!identifikasi || !rencana || !waktu || !penanggungJawab) {
-        alert("Semua field respons wajib diisi!");
+        alert("Semua field wajib diisi!");
         return;
       }
 
-      responList[id] = { identifikasi, sumber, rencana, waktu, penanggungJawab };
-      localStorage.setItem("responList", JSON.stringify(responList));
+      const data = {
+        type: "respon",
+        id,
+        identifikasi,
+        sumber,
+        rencana,
+        waktu,
+        penanggungJawab
+      };
 
-      alert("Respons berhasil disimpan!");
-      closeResponseForm();
-      renderRespon();
-      renderData();
-      renderStatistik();
+      try {
+        await fetch(API_URL, { method: "POST", body: JSON.stringify(data) });
+        alert("Respons berhasil disimpan!");
+        closeResponseForm();
+        loadData();
+      } catch (e) {
+        alert("Gagal simpan respons.");
+      }
     }
 
-    // Tutup form respons
     function closeResponseForm() {
       const form = document.getElementById("form-respon");
       if (form) form.remove();
     }
 
-    // Render data gabungan
-    function renderData() {
-      const tbody = document.querySelector("#tabelData tbody");
+    function renderRespon() {
+      const tbody = document.querySelector("#tabelRespon tbody");
       tbody.innerHTML = "";
 
-      if (pengaduanList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="no-data">Belum ada pengaduan.</td></tr>`;
+      if (allData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="no-data">Belum ada pengaduan.</td></tr>`;
         return;
       }
 
-      pengaduanList.forEach(item => {
-        const r = responList[item.id] || {};
-        const status = r.identifikasi ? "Selesai" : "Belum";
+      allData.forEach(item => {
+        const status = item.identifikasi ? "Selesai" : "Belum";
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${item.nama}</td>
           <td>${item.jabatan}</td>
-          <td>${item.isiAduan.substring(0, 40)}...</td>
-          <td>${r.identifikasi || "-"}</td>
-          <td>${r.sumber || "-"}</td>
-          <td>${r.rencana || "-"}</td>
-          <td>${r.waktu || "-"}</td>
-          <td>${r.penanggungJawab || "-"}</td>
-          <td style="color:${status==='Selesai'?'green':'red'}; font-weight:bold;">${status}</td>
+          <td>${item.isiAduan.substring(0, 50)}...</td>
+          <td><span style="color:${status==='Selesai'?'green':'red'}">${status}</span></td>
+          <td><button onclick="showResponseForm('${item.id}', '${item.nama.replace(/'/g, "\\'")}', '${item.isiAduan.replace(/'/g, "\\'")}')">Tanggapi</button></td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // Render statistik
+    function renderData() {
+      const tbody = document.querySelector("#tabelData tbody");
+      tbody.innerHTML = "";
+
+      allData.forEach(item => {
+        const status = item.identifikasi ? "Selesai" : "Belum";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.nama}</td>
+          <td>${item.jabatan}</td>
+          <td>${item.isiAduan.substring(0, 40)}...</td>
+          <td>${item.identifikasi || "-"}</td>
+          <td>${item.sumber || "-"}</td>
+          <td>${item.rencana || "-"}</td>
+          <td>${item.waktu || "-"}</td>
+          <td>${item.penanggungJawab || "-"}</td>
+          <td style="color:${status==='Selesai'?'green':'red'}">${status}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     function renderStatistik() {
-      const total = pengaduanList.length;
-      const sudah = Object.keys(responList).length;
+      const total = allData.length;
+      const sudah = allData.filter(d => d.identifikasi).length;
       const belum = total - sudah;
 
       document.getElementById("total").textContent = total;
@@ -364,63 +344,30 @@
       const ul = document.getElementById("statJabatan");
       ul.innerHTML = "";
 
-      if (total === 0) {
-        ul.innerHTML = "<li>Belum ada pengaduan</li>";
-        return;
-      }
-
-      const jabatanCount = {};
-      pengaduanList.forEach(p => jabatanCount[p.jabatan] = (jabatanCount[p.jabatan] || 0) + 1);
-      for (const [jab, count] of Object.entries(jabatanCount)) {
+      const count = {};
+      allData.forEach(d => count[d.jabatan] = (count[d.jabatan] || 0) + 1);
+      for (const [j, c] of Object.entries(count)) {
         const li = document.createElement("li");
-        li.textContent = `${jab}: ${count} pengaduan`;
+        li.textContent = `${j}: ${c}`;
         ul.appendChild(li);
       }
     }
 
-    // Export ke CSV
     function exportToCSV() {
-      if (pengaduanList.length === 0) {
-        alert("Tidak ada data untuk diekspor.");
-        return;
-      }
-
-      let csv = [
-        ["Nama", "Jabatan", "Aduan", "Identifikasi", "Sumber", "Rencana Aksi", "Waktu", "Penanggung Jawab", "Status"].join(",")
-      ];
-
-      pengaduanList.forEach(item => {
-        const r = responList[item.id] || {};
-        const status = r.identifikasi ? "Selesai" : "Belum";
-        const row = [
-          `"${item.nama}"`,
-          `"${item.jabatan}"`,
-          `"${item.isiAduan.replace(/"/g, '""')}"`,
-          `"${r.identifikasi || "-"}"`,
-          `"${r.sumber || "-"}"`,
-          `"${r.rencana || "-"}"`,
-          `"${r.waktu || "-"}"`,
-          `"${r.penanggungJawab || "-"}"`,
-          `"${status}"`
-        ];
-        csv.push(row.join(","));
+      if (allData.length === 0) return alert("Tidak ada data.");
+      let csv = "Nama,Jabatan,Aduan,Identifikasi,Sumber,Rencana,Waktu,Status\n";
+      allData.forEach(d => {
+        const status = d.identifikasi ? "Selesai" : "Belum";
+        csv += `"${d.nama}","${d.jabatan}","${d.isiAduan.replace(/"/g,'""')}","${d.identifikasi || '-'}","${d.sumber || '-'}","${d.rencana || '-'}","${d.waktu || '-'}","${status}"\n`;
       });
-
-      const blob = new Blob([csv.join("\n")], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
+      const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `pengaduan_febi_uinsi_${new Date().toISOString().slice(0,10)}.csv`;
+      a.href = URL.createObjectURL(blob);
+      a.download = `pengaduan_febi_${new Date().toISOString().slice(0,10)}.csv`;
       a.click();
     }
 
-    // Inisialisasi
-    document.addEventListener("DOMContentLoaded", function () {
-      renderRespon();
-      renderData();
-      renderStatistik();
-    });
+    document.addEventListener("DOMContentLoaded", loadData);
   </script>
 </body>
 </html>
-
