@@ -1,202 +1,153 @@
-<!DOCTYPE html>
+INDEXHTML <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard Layanan Pengaduan FEBI</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f8f9fa; }
-    .tabs { display: flex; background: #003366; color: white; }
-    .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; }
-    .tab.active { background: #0055a5; }
-    .content { display: none; padding: 20px; }
-    .content.active { display: block; }
-    table { border-collapse: collapse; width: 100%; margin-top: 15px; }
-    table, th, td { border: 1px solid #ccc; padding: 8px; }
-    button { padding: 5px 10px; background: #0055a5; color: white; border: none; cursor: pointer; }
-    button:hover { background: #0077cc; }
-  </style>
+<meta charset="UTF-8">
+<title>Dashboard Pengaduan</title>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<style>
+body{font-family:sans-serif; margin:20px;}
+.tab{display:none;}
+.tab.active{display:block;}
+button.tablink{margin:5px;}
+table{border-collapse:collapse; width:100%;}
+table, th, td{border:1px solid #ccc;}
+th,td{padding:5px;}
+</style>
 </head>
 <body>
 
-<div class="tabs">
-  <div class="tab active" onclick="showTab('aduan')">Input Aduan</div>
-  <div class="tab" onclick="showTab('data')">Data Aduan</div>
-  <div class="tab" onclick="showTab('statistik')">Statistik</div>
+<h2>Dashboard Layanan Pengaduan</h2>
+<div>
+<button class="tablink" onclick="openTab('inputAduan')">Input Aduan</button>
+<button class="tablink" onclick="openTab('inputRespon')">Input Respon</button>
+<button class="tablink" onclick="openTab('dataAduan')">Data Aduan</button>
+<button class="tablink" onclick="openTab('statistik')">Statistik</button>
 </div>
 
-<!-- Tab Input Aduan -->
-<div id="aduan" class="content active">
-  <h2>Form Pengaduan</h2>
-  <form id="formAduan">
-    <input type="text" name="nama" placeholder="Nama" required>
-    <select name="jabatan" required>
-      <option value="">-- Pilih Jabatan --</option>
-      <option value="Mahasiswa">Mahasiswa</option>
-      <option value="Tendik">Tendik</option>
-      <option value="Dosen">Dosen</option>
-    </select>
-    <textarea name="isi" placeholder="Isi Aduan" required></textarea>
-    <button type="submit">Kirim Aduan</button>
-  </form>
+<!-- Input Aduan -->
+<div id="inputAduan" class="tab">
+<h3>Input Aduan</h3>
+<form id="formAduan">
+Nama: <input type="text" name="nama"><br>
+Jabatan: 
+<select name="jabatan"><option>Mahasiswa</option><option>Tendik</option><option>Dosen</option></select><br>
+Isi Aduan:<br><textarea name="isi"></textarea><br>
+<button type="submit">Kirim</button>
+</form>
+<div id="msgAduan"></div>
 </div>
 
-<!-- Tab Data Aduan -->
-<div id="data" class="content">
-  <h2>Data Aduan & Respon</h2>
-  <table id="tableData">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Nama</th>
-        <th>Jabatan</th>
-        <th>Isi Aduan</th>
-        <th>Status</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<!-- Input Respon -->
+<div id="inputRespon" class="tab">
+<h3>Input Respon</h3>
+<form id="formRespon">
+ID Aduan: <input type="text" name="id"><br>
+Identifikasi Masalah: <input type="text" name="identifikasi"><br>
+Sumber Masalah: <input type="text" name="sumber"><br>
+Rencana Aksi: <input type="text" name="rencana"><br>
+Waktu Penyelesaian: <input type="date" name="waktu"><br>
+Penanggung Jawab: <input type="text" name="pj"><br>
+Status: <select name="status"><option>Belum Diproses</option><option>Dalam Proses</option><option>Selesai</option></select><br>
+<button type="submit">Kirim Respon</button>
+</form>
+<div id="msgRespon"></div>
 </div>
 
-<!-- Tab Statistik -->
-<div id="statistik" class="content">
-  <h2>Statistik Pengaduan</h2>
-  <canvas id="chartAduan"></canvas>
-  <div id="summary"></div>
+<!-- Data Aduan -->
+<div id="dataAduan" class="tab">
+<h3>Data Aduan</h3>
+<div id="dataAduanTable"></div>
 </div>
 
-<!-- Modal Respon -->
-<div id="modalRespon" style="display:none; position:fixed; top:20%; left:20%; background:white; padding:20px; border:1px solid #ccc;">
-  <h3>Beri Respon Aduan</h3>
-  <form id="formRespon">
-    <input type="hidden" name="idAduan">
-    <input type="text" name="identifikasi" placeholder="Identifikasi Masalah" required>
-    <input type="text" name="sumber" placeholder="Sumber Masalah" required>
-    <input type="text" name="rencana" placeholder="Rencana Aksi" required>
-    <input type="text" name="waktu" placeholder="Waktu Penyelesaian" required>
-    <input type="text" name="penanggungjawab" placeholder="Penanggungjawab" required>
-    <select name="status" required>
-      <option value="Dalam Proses">Dalam Proses</option>
-      <option value="Selesai">Selesai</option>
-    </select>
-    <br><br>
-    <button type="submit">Kirim Respon</button>
-    <button type="button" onclick="closeModal()">Batal</button>
-  </form>
+<!-- Statistik -->
+<div id="statistik" class="tab">
+<h3>Statistik</h3>
+<div id="chart_div"></div>
 </div>
 
 <script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbwqlUIk34wqBe-MSqmyNZdTLTJQWVE5j9mXPsQzKpU6mjsctQqaqphw9JqJWUaRG1Mw/exec";
+const WEBAPP_URL = "PASTE_WEBAPP_URL_HERE"; // ganti dengan URL WebApp
 
-// Tab navigasi
-function showTab(tabId) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById(tabId).classList.add('active');
+// Tab
+function openTab(tabName){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(tabName).classList.add('active');
 }
+openTab('inputAduan'); // default
 
-// Generate ID unik
-function generateID() {
-  return 'ADUAN-' + Math.random().toString(36).substr(2, 9);
-}
-
-// Kirim Aduan
-document.getElementById('formAduan').addEventListener('submit', e => {
+// Submit Aduan
+document.getElementById("formAduan").onsubmit = async e=>{
   e.preventDefault();
-  const id = generateID();
-  const data = {
-    id: id,
-    nama: e.target.nama.value,
-    jabatan: e.target.jabatan.value,
-    isi: e.target.isi.value
-  };
-  fetch(scriptURL+"?action=aduan", { method: 'POST', body: JSON.stringify(data) })
-    .then(r => alert("Aduan berhasil dikirim"))
-    .then(loadData)
-    .catch(err => alert("Error: " + err));
+  const fd = new FormData(e.target);
+  fd.append("action","addAduan");
+  const data = Object.fromEntries(fd.entries());
+  const res = await fetch(WEBAPP_URL,{method:"POST",body:JSON.stringify(data),headers:{"Content-Type":"application/json"}});
+  const json = await res.json();
+  document.getElementById("msgAduan").innerText = json.message;
   e.target.reset();
-});
+  loadData(); loadStatistik();
+};
 
-// Load Data Aduan
-async function loadData() {
-  let res = await fetch(scriptURL+"?sheet=Aduan");
+// Submit Respon
+document.getElementById("formRespon").onsubmit = async e=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  fd.append("action","addRespon");
+  const data = Object.fromEntries(fd.entries());
+  const res = await fetch(WEBAPP_URL,{method:"POST",body:JSON.stringify(data),headers:{"Content-Type":"application/json"}});
+  const json = await res.json();
+  document.getElementById("msgRespon").innerText = json.message;
+  e.target.reset();
+  loadData(); loadStatistik();
+};
+
+// Load Data
+async function loadData(){
+  const res = await fetch(WEBAPP_URL+"?action=getData");
   let data = await res.json();
-  let tbody = document.querySelector("#tableData tbody");
-  tbody.innerHTML = "";
-  data.slice(1).forEach(row => {
-    let tr = document.createElement("tr");
-    tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td>${row[5]}</td>
-      <td><button onclick="openModal('${row[0]}')">Respon</button></td>`;
-    tbody.appendChild(tr);
+  if(!Array.isArray(data)) { console.error("Data bukan array:", data); return; }
+
+  google.charts.load('current', {'packages':['table']});
+  google.charts.setOnLoadCallback(()=>{
+    const table = new google.visualization.DataTable();
+    table.addColumn('string','ID');
+    table.addColumn('string','Nama');
+    table.addColumn('string','Jabatan');
+    table.addColumn('string','Isi Aduan');
+    table.addColumn('string','Status');
+    table.addColumn('string','Respon');
+    table.addRows(data);
+    const chart = new google.visualization.Table(document.getElementById('dataAduanTable'));
+    chart.draw(table,{showRowNumber:true,width:'100%'});
   });
-  updateChart(data);
 }
+loadData();
 
-// Buka Modal Respon
-function openModal(id) {
-  document.getElementById('modalRespon').style.display = 'block';
-  document.querySelector("#formRespon [name=idAduan]").value = id;
-}
-function closeModal() {
-  document.getElementById('modalRespon').style.display = 'none';
-}
+// Load Statistik
+async function loadStatistik(){
+  const res = await fetch(WEBAPP_URL+"?action=getData");
+  let data = await res.json();
+  if(!Array.isArray(data)) return;
 
-// Kirim Respon
-document.getElementById('formRespon').addEventListener('submit', e => {
-  e.preventDefault();
-  const data = {
-    idAduan: e.target.idAduan.value,
-    identifikasi: e.target.identifikasi.value,
-    sumber: e.target.sumber.value,
-    rencana: e.target.rencana.value,
-    waktu: e.target.waktu.value,
-    penanggungjawab: e.target.penanggungjawab.value,
-    status: e.target.status.value
-  };
-  fetch(scriptURL+"?action=respon", { method: 'POST', body: JSON.stringify(data) })
-    .then(r => alert("Respon berhasil disimpan"))
-    .then(() => { loadData(); closeModal(); })
-    .catch(err => alert("Error: " + err));
-  e.target.reset();
-});
+  const total = data.length;
+  const selesai = data.filter(d=>d[4]=="Selesai").length;
+  const proses = data.filter(d=>d[4]=="Dalam Proses").length;
+  const belum = data.filter(d=>d[4]=="Belum Diproses").length;
 
-// Update Statistik
-function updateChart(data) {
-  let counts = {Mahasiswa:0, Dosen:0, Tendik:0};
-  let selesai=0, proses=0, belum=0;
-
-  data.slice(1).forEach(row => {
-    if (row[2] in counts) counts[row[2]]++;
-    if (row[5] === "Selesai") selesai++;
-    else if (row[5] === "Dalam Proses") proses++;
-    else belum++;
+  google.charts.load('current', {'packages':['corechart']});
+  google.charts.setOnLoadCallback(()=>{
+    const chartData = google.visualization.arrayToDataTable([
+      ['Status','Jumlah'],
+      ['Belum Diproses',belum],
+      ['Dalam Proses',proses],
+      ['Selesai',selesai]
+    ]);
+    const options = {title:'Statistik Aduan'};
+    const chart = new google.visualization.PieChart(document.getElementById('chart_div'));
+    chart.draw(chartData,options);
   });
-
-  const ctx = document.getElementById('chartAduan').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: Object.keys(counts),
-      datasets: [{
-        label: 'Jumlah Aduan',
-        data: Object.values(counts),
-        backgroundColor: ['#007bff','#28a745','#ffc107']
-      }]
-    }
-  });
-
-  document.getElementById("summary").innerHTML = `
-    <p>Total Aduan: ${data.length-1}</p>
-    <p>Selesai: ${selesai}</p>
-    <p>Dalam Proses: ${proses}</p>
-    <p>Belum Diproses: ${belum}</p>
-  `;
 }
-
-loadData(); // pertama kali load
 </script>
+
 </body>
 </html>
-
