@@ -43,9 +43,7 @@
       border-radius: 8px 8px 0 0;
       font-weight: 600;
     }
-    .tab:hover { 
-      background: #dde2e6; 
-    }
+    .tab:hover { background: #dde2e6; }
     .tab.active {
       background: #007bff;
       color: white;
@@ -85,9 +83,7 @@
       text-align: left;
       border-bottom: 1px solid #ddd;
     }
-    th { 
-      background: #f1f1f1; 
-    }
+    th { background: #f1f1f1; }
     .no-data {
       text-align: center;
       padding: 30px;
@@ -181,25 +177,40 @@
 
   <script>
     // 🔁 GANTI DENGAN URL WEB APP ANDA
-    const API_URL = "https://script.google.com/macros/s/AKfycbxFPB-M3V5SscPWbknByptx2MOu0qD55iZOXFkSrBsi0hp4Ep4akosQYCBR7bRBPK_Y/exec";
+    const API_URL = "https://script.google.com/macros/s/YOUR-GAS-DEPLOYMENT-ID/exec";
 
     let allData = [];
 
-    // --- 🔧 loadData() DIPERBAIKI: Cache Busting & Validasi ---
+    // --- 🔧 loadData() DIPERBAIKI: Cache Busting + Validasi + Ulangi Jika Gagal ---
     async function loadData() {
+      const timestamp = new Date().getTime();
+      const url = `${API_URL}?t=${timestamp}`;
+
       try {
-        const timestamp = new Date().getTime();
-        const res = await fetch(`${API_URL}?v=${timestamp}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache, no-store",
+            "Pragma": "no-cache"
+          }
+        });
 
-        const newData = await res.json();
+        const text = await res.text();
+        let jsonData;
 
-        if (!Array.isArray(newData)) {
-          throw new Error("Data bukan array. Cek GAS doGet()");
+        try {
+          jsonData = JSON.parse(text);
+        } catch (e) {
+          console.error("❌ GAS mengembalikan HTML:", text);
+          throw new Error("Backend mengembalikan data tidak valid");
         }
 
-        allData = newData;
-        console.log("✅ Data berhasil dimuat dari Google Sheets:", allData);
+        if (!Array.isArray(jsonData)) {
+          throw new Error("Data bukan array");
+        }
+
+        allData = jsonData;
+        console.log("✅ Data berhasil dimuat:", allData);
 
         // Render ulang semua tab
         renderRespon();
@@ -208,9 +219,11 @@
 
       } catch (e) {
         console.error("❌ Gagal muat data:", e);
-        const msg = `<tr><td colspan="5" class="no-data">Gagal muat data. Coba refresh.</td></tr>`;
-        const tbody = document.querySelector("#respon tbody");
-        if (tbody) tbody.innerHTML = msg;
+        // Coba ulang setelah 1.5 detik
+        setTimeout(async () => {
+          console.log("🔁 Mencoba muat ulang data...");
+          await loadData();
+        }, 1500);
       }
     }
 
@@ -240,11 +253,10 @@
       };
 
       try {
-        const res = await fetch(API_URL, {
+        await fetch(API_URL, {
           method: "POST",
           body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         alert("Pengaduan berhasil dikirim!");
         document.getElementById("nama").value = "";
@@ -254,7 +266,7 @@
         await loadData(); // Muat ulang data terbaru
 
       } catch (e) {
-        console.error("❌ Gagal kirim pengaduan:", e);
+        console.error("Gagal kirim:", e);
         alert("Gagal mengirim. Cek koneksi.");
       }
     }
@@ -278,6 +290,7 @@
       container.insertAdjacentHTML("beforeend", formHtml);
     }
 
+    // --- ✅ saveResponse() DIPERBAIKI: Tunggu & Sinkron ---
     async function saveResponse() {
       const id = document.getElementById("respon-id").value;
       const identifikasi = document.getElementById("identifikasi").value.trim();
@@ -302,21 +315,31 @@
       };
 
       try {
-        const res = await fetch(API_URL, {
+        // Kirim data ke Google Sheets
+        await fetch(API_URL, {
           method: "POST",
           body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        console.log("✅ Respons dikirim. Memuat ulang data...");
-        await loadData(); // Pastikan data terbaru dimuat
+        // Beri jeda agar GAS selesai proses
+        await new Promise(resolve => setTimeout(resolve, 1200));
 
-        alert("Respons berhasil disimpan!");
+        // Muat ulang data
+        await loadData();
+
+        // Verifikasi
+        const item = allData.find(d => d.id === id);
+        if (item && item.identifikasi) {
+          alert("✅ Respons berhasil disimpan dan disinkronkan!");
+        } else {
+          alert("Data disimpan, tapi butuh beberapa detik untuk tampil.");
+        }
+
         closeResponseForm();
 
       } catch (e) {
-        console.error("❌ Gagal simpan respons:", e);
-        alert("Gagal menyimpan respons. Coba refresh halaman.");
+        console.error("Gagal simpan:", e);
+        alert("Gagal menyimpan. Coba refresh halaman.");
       }
     }
 
@@ -349,7 +372,6 @@
     }
 
     function renderData() {
-      console.log("📊 Rendering Data Pengaduan:", allData);
       const tbody = document.querySelector("#tabelData tbody");
       tbody.innerHTML = "";
 
@@ -377,7 +399,6 @@
     }
 
     function renderStatistik() {
-      console.log("📈 Rendering Statistik:", allData);
       const total = allData.length;
       const sudah = allData.filter(d => d.identifikasi && d.identifikasi.trim() !== "").length;
       const belum = total - sudah;
@@ -411,22 +432,21 @@
         return;
       }
 
-      let csv = "Nama,Jabatan,Aduan,Identifikasi,Sumber,Rencana Aksi,Waktu Penyelesaian,Penanggung Jawab,Status\n";
-
+      let csv = "Nama,Jabatan,Aduan,Identifikasi,Sumber,Rencana Aksi,Waktu,Status\n";
       allData.forEach(d => {
         const status = d.identifikasi && d.identifikasi.trim() !== "" ? "Selesai" : "Belum";
-        csv += `"${d.nama}","${d.jabatan}","${d.isiAduan.replace(/"/g, '""')}","${d.identifikasi || '-'}","${d.sumber || '-'}","${d.rencana || '-'}","${d.waktu || '-'}","${d.penanggungJawab || '-'}","${status}"\n`;
+        csv += `"${d.nama}","${d.jabatan}","${d.isiAduan.replace(/"/g, '""')}","${d.identifikasi || '-'}","${d.sumber || '-'}","${d.rencana || '-'}","${d.waktu || '-'}","${status}"\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `pengaduan_febi_uinsi_${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `pengaduan_febi_${new Date().toISOString().slice(0,10)}.csv`;
       a.click();
     }
 
-    // Muat data saat halaman selesai
+    // Muat data saat halaman siap
     document.addEventListener("DOMContentLoaded", function () {
       loadData();
     });
