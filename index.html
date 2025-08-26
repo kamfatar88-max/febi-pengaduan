@@ -176,48 +176,20 @@
   </div>
 
   <script>
-    // 🔁 GANTI DENGAN URL WEB APP ANDA
-    const API_URL = "https://script.google.com/macros/s/YOUR-GAS-DEPLOYMENT-ID/exec";
+    // GANTI DENGAN URL WEB APP ANDA
+    const API_URL = "https://script.google.com/macros/s/AKfycbxFPB-M3V5SscPWbknByptx2MOu0qD55iZOXFkSrBsi0hp4Ep4akosQYCBR7bRBPK_Y/exec";
 
     let allData = [];
 
-    // --- 🔧 loadData() - Muat data dari Google Sheets ---
     async function loadData() {
-      const timestamp = new Date().getTime();
-      const url = `${API_URL}?t=${timestamp}`;
-
       try {
-        const res = await fetch(url, { method: "GET", mode: "cors" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const text = await res.text();
-        let jsonData;
-
-        try {
-          jsonData = JSON.parse(text);
-        } catch (e) {
-          console.error("❌ Bukan JSON:", text);
-          alert("Server mengembalikan data tidak valid. Cek GAS.");
-          return;
-        }
-
-        if (!Array.isArray(jsonData)) {
-          console.error("❌ Data bukan array:", jsonData);
-          return;
-        }
-
-        allData = jsonData;
-        console.log("✅ Data dimuat:", allData);
-
+        const res = await fetch(API_URL);
+        allData = await res.json();
         renderRespon();
         renderData();
         renderStatistik();
-
       } catch (e) {
-        console.error("❌ Gagal muat data:", e);
-        const msg = `<tr><td colspan="5" class="no-data">Gagal koneksi. Cek URL GAS atau izin.</td></tr>`;
-        const tbody = document.querySelector("#respon tbody");
-        if (tbody) tbody.innerHTML = msg;
+        console.error("Gagal muat data:", e);
       }
     }
 
@@ -247,25 +219,14 @@
       };
 
       try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify(data)
-        });
-
+        await fetch(API_URL, { method: "POST", body: JSON.stringify(data) });
         alert("Pengaduan berhasil dikirim!");
         document.getElementById("nama").value = "";
         document.getElementById("jabatan").value = "";
         document.getElementById("isiAduan").value = "";
-
-        // Muat ulang data
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await loadData();
-
+        loadData();
       } catch (e) {
-        alert("Terkirim (offline), akan disinkronkan saat online.");
-        console.warn("Offline:", e);
-        await loadData(); // Tetap muat ulang
+        alert("Gagal mengirim. Cek koneksi.");
       }
     }
 
@@ -276,11 +237,11 @@
           <h3>Respon untuk: ${nama}</h3>
           <p><strong>Aduan:</strong> ${aduan}</p>
           <input type="hidden" id="respon-id" value="${id}" />
-          <input type="text" id="identifikasi" placeholder="Identifikasi Masalah" required/>
+          <input type="text" id="identifikasi" placeholder="Identifikasi Masalah" />
           <input type="text" id="sumber" placeholder="Sumber Masalah" />
-          <textarea id="rencana" placeholder="Rencana Aksi" rows="3" required></textarea>
-          <input type="date" id="waktu" required />
-          <input type="text" id="penanggungJawab" placeholder="Penanggung Jawab" required/>
+          <textarea id="rencana" placeholder="Rencana Aksi" rows="3"></textarea>
+          <input type="date" id="waktu" />
+          <input type="text" id="penanggungJawab" placeholder="Penanggung Jawab" />
           <button onclick="saveResponse()">Simpan Respon</button>
           <button type="button" style="background:#6c757d;margin-top:10px;" onclick="closeResponseForm()">Batal</button>
         </div>
@@ -312,24 +273,12 @@
       };
 
       try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify(data)
-        });
-
+        await fetch(API_URL, { method: "POST", body: JSON.stringify(data) });
         alert("Respons berhasil disimpan!");
         closeResponseForm();
-
-        // Tunggu & muat ulang
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        await loadData();
-
+        loadData();
       } catch (e) {
-        alert("Respons disimpan (offline), akan disinkronkan nanti.");
-        console.warn("Offline:", e);
-        closeResponseForm();
-        await loadData();
+        alert("Gagal simpan respons.");
       }
     }
 
@@ -348,13 +297,13 @@
       }
 
       allData.forEach(item => {
-        const status = item.identifikasi && item.identifikasi.trim() !== "" ? "Selesai" : "Belum";
+        const status = item.identifikasi ? "Selesai" : "Belum";
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${item.nama}</td>
           <td>${item.jabatan}</td>
           <td>${item.isiAduan.substring(0, 50)}...</td>
-          <td><span style="color:${status==='Selesai'?'green':'red'}; font-weight:bold;">${status}</span></td>
+          <td><span style="color:${status==='Selesai'?'green':'red'}">${status}</span></td>
           <td><button onclick="showResponseForm('${item.id}', '${item.nama.replace(/'/g, "\\'")}', '${item.isiAduan.replace(/'/g, "\\'")}')">Tanggapi</button></td>
         `;
         tbody.appendChild(tr);
@@ -365,13 +314,8 @@
       const tbody = document.querySelector("#tabelData tbody");
       tbody.innerHTML = "";
 
-      if (allData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="no-data">Belum ada data pengaduan.</td></tr>`;
-        return;
-      }
-
       allData.forEach(item => {
-        const status = item.identifikasi && item.identifikasi.trim() !== "" ? "Selesai" : "Belum";
+        const status = item.identifikasi ? "Selesai" : "Belum";
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${item.nama}</td>
@@ -382,7 +326,7 @@
           <td>${item.rencana || "-"}</td>
           <td>${item.waktu || "-"}</td>
           <td>${item.penanggungJawab || "-"}</td>
-          <td style="color:${status==='Selesai'?'green':'red'}; font-weight:bold;">${status}</td>
+          <td style="color:${status==='Selesai'?'green':'red'}">${status}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -390,7 +334,7 @@
 
     function renderStatistik() {
       const total = allData.length;
-      const sudah = allData.filter(d => d.identifikasi && d.identifikasi.trim() !== "").length;
+      const sudah = allData.filter(d => d.identifikasi).length;
       const belum = total - sudah;
 
       document.getElementById("total").textContent = total;
@@ -401,45 +345,29 @@
       ul.innerHTML = "";
 
       const count = {};
-      allData.forEach(d => {
-        if (d.jabatan) count[d.jabatan] = (count[d.jabatan] || 0) + 1;
-      });
-
-      if (Object.keys(count).length === 0) {
-        ul.innerHTML = "<li>Belum ada data</li>";
-      } else {
-        for (const [j, c] of Object.entries(count)) {
-          const li = document.createElement("li");
-          li.textContent = `${j}: ${c} pengaduan`;
-          ul.appendChild(li);
-        }
+      allData.forEach(d => count[d.jabatan] = (count[d.jabatan] || 0) + 1);
+      for (const [j, c] of Object.entries(count)) {
+        const li = document.createElement("li");
+        li.textContent = `${j}: ${c}`;
+        ul.appendChild(li);
       }
     }
 
     function exportToCSV() {
-      if (allData.length === 0) {
-        alert("Tidak ada data untuk diekspor.");
-        return;
-      }
-
-      let csv = "Nama,Jabatan,Aduan,Identifikasi,Sumber,Rencana Aksi,Waktu,Status\n";
+      if (allData.length === 0) return alert("Tidak ada data.");
+      let csv = "Nama,Jabatan,Aduan,Identifikasi,Sumber,Rencana,Waktu,Status\n";
       allData.forEach(d => {
-        const status = d.identifikasi && d.identifikasi.trim() !== "" ? "Selesai" : "Belum";
-        csv += `"${d.nama}","${d.jabatan}","${d.isiAduan.replace(/"/g, '""')}","${d.identifikasi || '-'}","${d.sumber || '-'}","${d.rencana || '-'}","${d.waktu || '-'}","${status}"\n`;
+        const status = d.identifikasi ? "Selesai" : "Belum";
+        csv += `"${d.nama}","${d.jabatan}","${d.isiAduan.replace(/"/g,'""')}","${d.identifikasi || '-'}","${d.sumber || '-'}","${d.rencana || '-'}","${d.waktu || '-'}","${status}"\n`;
       });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
+      const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement("a");
-      a.href = url;
+      a.href = URL.createObjectURL(blob);
       a.download = `pengaduan_febi_${new Date().toISOString().slice(0,10)}.csv`;
       a.click();
     }
 
-    // Muat data saat halaman siap
-    document.addEventListener("DOMContentLoaded", () => {
-      setTimeout(loadData, 500); // Tunggu DOM
-    });
+    document.addEventListener("DOMContentLoaded", loadData);
   </script>
 </body>
 </html>
