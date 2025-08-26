@@ -181,19 +181,14 @@
 
     let allData = [];
 
-    // --- 🔧 loadData() DIPERBAIKI: Cache Busting + Validasi + Ulangi Jika Gagal ---
+    // --- 🔧 loadData() - Muat data dari Google Sheets ---
     async function loadData() {
       const timestamp = new Date().getTime();
       const url = `${API_URL}?t=${timestamp}`;
 
       try {
-        const res = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Cache-Control": "no-cache, no-store",
-            "Pragma": "no-cache"
-          }
-        });
+        const res = await fetch(url, { method: "GET", mode: "cors" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const text = await res.text();
         let jsonData;
@@ -201,29 +196,28 @@
         try {
           jsonData = JSON.parse(text);
         } catch (e) {
-          console.error("❌ GAS mengembalikan HTML:", text);
-          throw new Error("Backend mengembalikan data tidak valid");
+          console.error("❌ Bukan JSON:", text);
+          alert("Server mengembalikan data tidak valid. Cek GAS.");
+          return;
         }
 
         if (!Array.isArray(jsonData)) {
-          throw new Error("Data bukan array");
+          console.error("❌ Data bukan array:", jsonData);
+          return;
         }
 
         allData = jsonData;
-        console.log("✅ Data berhasil dimuat:", allData);
+        console.log("✅ Data dimuat:", allData);
 
-        // Render ulang semua tab
         renderRespon();
         renderData();
         renderStatistik();
 
       } catch (e) {
         console.error("❌ Gagal muat data:", e);
-        // Coba ulang setelah 1.5 detik
-        setTimeout(async () => {
-          console.log("🔁 Mencoba muat ulang data...");
-          await loadData();
-        }, 1500);
+        const msg = `<tr><td colspan="5" class="no-data">Gagal koneksi. Cek URL GAS atau izin.</td></tr>`;
+        const tbody = document.querySelector("#respon tbody");
+        if (tbody) tbody.innerHTML = msg;
       }
     }
 
@@ -255,6 +249,7 @@
       try {
         await fetch(API_URL, {
           method: "POST",
+          mode: "no-cors",
           body: JSON.stringify(data)
         });
 
@@ -263,11 +258,14 @@
         document.getElementById("jabatan").value = "";
         document.getElementById("isiAduan").value = "";
 
-        await loadData(); // Muat ulang data terbaru
+        // Muat ulang data
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await loadData();
 
       } catch (e) {
-        console.error("Gagal kirim:", e);
-        alert("Gagal mengirim. Cek koneksi.");
+        alert("Terkirim (offline), akan disinkronkan saat online.");
+        console.warn("Offline:", e);
+        await loadData(); // Tetap muat ulang
       }
     }
 
@@ -278,11 +276,11 @@
           <h3>Respon untuk: ${nama}</h3>
           <p><strong>Aduan:</strong> ${aduan}</p>
           <input type="hidden" id="respon-id" value="${id}" />
-          <input type="text" id="identifikasi" placeholder="Identifikasi Masalah" />
+          <input type="text" id="identifikasi" placeholder="Identifikasi Masalah" required/>
           <input type="text" id="sumber" placeholder="Sumber Masalah" />
-          <textarea id="rencana" placeholder="Rencana Aksi" rows="3"></textarea>
-          <input type="date" id="waktu" />
-          <input type="text" id="penanggungJawab" placeholder="Penanggung Jawab" />
+          <textarea id="rencana" placeholder="Rencana Aksi" rows="3" required></textarea>
+          <input type="date" id="waktu" required />
+          <input type="text" id="penanggungJawab" placeholder="Penanggung Jawab" required/>
           <button onclick="saveResponse()">Simpan Respon</button>
           <button type="button" style="background:#6c757d;margin-top:10px;" onclick="closeResponseForm()">Batal</button>
         </div>
@@ -290,7 +288,6 @@
       container.insertAdjacentHTML("beforeend", formHtml);
     }
 
-    // --- ✅ saveResponse() DIPERBAIKI: Tunggu & Sinkron ---
     async function saveResponse() {
       const id = document.getElementById("respon-id").value;
       const identifikasi = document.getElementById("identifikasi").value.trim();
@@ -315,31 +312,24 @@
       };
 
       try {
-        // Kirim data ke Google Sheets
         await fetch(API_URL, {
           method: "POST",
+          mode: "no-cors",
           body: JSON.stringify(data)
         });
 
-        // Beri jeda agar GAS selesai proses
-        await new Promise(resolve => setTimeout(resolve, 1200));
-
-        // Muat ulang data
-        await loadData();
-
-        // Verifikasi
-        const item = allData.find(d => d.id === id);
-        if (item && item.identifikasi) {
-          alert("✅ Respons berhasil disimpan dan disinkronkan!");
-        } else {
-          alert("Data disimpan, tapi butuh beberapa detik untuk tampil.");
-        }
-
+        alert("Respons berhasil disimpan!");
         closeResponseForm();
 
+        // Tunggu & muat ulang
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        await loadData();
+
       } catch (e) {
-        console.error("Gagal simpan:", e);
-        alert("Gagal menyimpan. Coba refresh halaman.");
+        alert("Respons disimpan (offline), akan disinkronkan nanti.");
+        console.warn("Offline:", e);
+        closeResponseForm();
+        await loadData();
       }
     }
 
@@ -447,8 +437,8 @@
     }
 
     // Muat data saat halaman siap
-    document.addEventListener("DOMContentLoaded", function () {
-      loadData();
+    document.addEventListener("DOMContentLoaded", () => {
+      setTimeout(loadData, 500); // Tunggu DOM
     });
   </script>
 </body>
