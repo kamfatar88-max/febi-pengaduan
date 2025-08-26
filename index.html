@@ -11,19 +11,16 @@
     .tab.active { background: #0055a5; }
     .content { display: none; padding: 20px; }
     .content.active { display: block; }
-    form { margin-top: 20px; }
-    input, textarea, select { width: 100%; padding: 8px; margin: 5px 0; }
-    button { padding: 10px 20px; background: #0055a5; color: white; border: none; cursor: pointer; }
-    button:hover { background: #0077cc; }
     table { border-collapse: collapse; width: 100%; margin-top: 15px; }
-    table, th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    table, th, td { border: 1px solid #ccc; padding: 8px; }
+    button { padding: 5px 10px; background: #0055a5; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0077cc; }
   </style>
 </head>
 <body>
 
 <div class="tabs">
   <div class="tab active" onclick="showTab('aduan')">Input Aduan</div>
-  <div class="tab" onclick="showTab('respon')">Input Respon</div>
   <div class="tab" onclick="showTab('data')">Data Aduan</div>
   <div class="tab" onclick="showTab('statistik')">Statistik</div>
 </div>
@@ -44,29 +41,18 @@
   </form>
 </div>
 
-<!-- Tab Input Respon -->
-<div id="respon" class="content">
-  <h2>Form Respon Aduan</h2>
-  <form id="formRespon">
-    <input type="text" name="identifikasi" placeholder="Identifikasi Masalah" required>
-    <input type="text" name="sumber" placeholder="Sumber Masalah" required>
-    <input type="text" name="rencana" placeholder="Rencana Aksi" required>
-    <input type="text" name="waktu" placeholder="Waktu Penyelesaian" required>
-    <input type="text" name="penanggungjawab" placeholder="Penanggungjawab" required>
-    <button type="submit">Kirim Respon</button>
-  </form>
-</div>
-
-<!-- Tab Data -->
+<!-- Tab Data Aduan -->
 <div id="data" class="content">
-  <h2>Data Pengaduan</h2>
+  <h2>Data Aduan & Respon</h2>
   <table id="tableData">
     <thead>
       <tr>
+        <th>ID</th>
         <th>Nama</th>
         <th>Jabatan</th>
         <th>Isi Aduan</th>
-        <th>Tanggal</th>
+        <th>Status</th>
+        <th>Aksi</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -77,6 +63,27 @@
 <div id="statistik" class="content">
   <h2>Statistik Pengaduan</h2>
   <canvas id="chartAduan"></canvas>
+  <div id="summary"></div>
+</div>
+
+<!-- Modal Respon -->
+<div id="modalRespon" style="display:none; position:fixed; top:20%; left:20%; background:white; padding:20px; border:1px solid #ccc;">
+  <h3>Beri Respon Aduan</h3>
+  <form id="formRespon">
+    <input type="hidden" name="idAduan">
+    <input type="text" name="identifikasi" placeholder="Identifikasi Masalah" required>
+    <input type="text" name="sumber" placeholder="Sumber Masalah" required>
+    <input type="text" name="rencana" placeholder="Rencana Aksi" required>
+    <input type="text" name="waktu" placeholder="Waktu Penyelesaian" required>
+    <input type="text" name="penanggungjawab" placeholder="Penanggungjawab" required>
+    <select name="status" required>
+      <option value="Dalam Proses">Dalam Proses</option>
+      <option value="Selesai">Selesai</option>
+    </select>
+    <br><br>
+    <button type="submit">Kirim Respon</button>
+    <button type="button" onclick="closeModal()">Batal</button>
+  </form>
 </div>
 
 <script>
@@ -90,39 +97,29 @@ function showTab(tabId) {
   document.getElementById(tabId).classList.add('active');
 }
 
+// Generate ID unik
+function generateID() {
+  return 'ADUAN-' + Math.random().toString(36).substr(2, 9);
+}
+
 // Kirim Aduan
 document.getElementById('formAduan').addEventListener('submit', e => {
   e.preventDefault();
-  const data = [
-    e.target.nama.value,
-    e.target.jabatan.value,
-    e.target.isi.value,
-    new Date().toLocaleString()
-  ];
-  fetch(scriptURL+"?sheet=Aduan", { method: 'POST', body: JSON.stringify(data) })
+  const id = generateID();
+  const data = {
+    id: id,
+    nama: e.target.nama.value,
+    jabatan: e.target.jabatan.value,
+    isi: e.target.isi.value
+  };
+  fetch(scriptURL+"?action=aduan", { method: 'POST', body: JSON.stringify(data) })
     .then(r => alert("Aduan berhasil dikirim"))
+    .then(loadData)
     .catch(err => alert("Error: " + err));
   e.target.reset();
 });
 
-// Kirim Respon
-document.getElementById('formRespon').addEventListener('submit', e => {
-  e.preventDefault();
-  const data = [
-    e.target.identifikasi.value,
-    e.target.sumber.value,
-    e.target.rencana.value,
-    e.target.waktu.value,
-    e.target.penanggungjawab.value,
-    new Date().toLocaleString()
-  ];
-  fetch(scriptURL+"?sheet=Respon", { method: 'POST', body: JSON.stringify(data) })
-    .then(r => alert("Respon berhasil dikirim"))
-    .catch(err => alert("Error: " + err));
-  e.target.reset();
-});
-
-// Load Data Aduan (real-time)
+// Load Data Aduan
 async function loadData() {
   let res = await fetch(scriptURL+"?sheet=Aduan");
   let data = await res.json();
@@ -130,18 +127,53 @@ async function loadData() {
   tbody.innerHTML = "";
   data.slice(1).forEach(row => {
     let tr = document.createElement("tr");
-    tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td>`;
+    tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td>${row[5]}</td>
+      <td><button onclick="openModal('${row[0]}')">Respon</button></td>`;
     tbody.appendChild(tr);
   });
   updateChart(data);
 }
 
+// Buka Modal Respon
+function openModal(id) {
+  document.getElementById('modalRespon').style.display = 'block';
+  document.querySelector("#formRespon [name=idAduan]").value = id;
+}
+function closeModal() {
+  document.getElementById('modalRespon').style.display = 'none';
+}
+
+// Kirim Respon
+document.getElementById('formRespon').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = {
+    idAduan: e.target.idAduan.value,
+    identifikasi: e.target.identifikasi.value,
+    sumber: e.target.sumber.value,
+    rencana: e.target.rencana.value,
+    waktu: e.target.waktu.value,
+    penanggungjawab: e.target.penanggungjawab.value,
+    status: e.target.status.value
+  };
+  fetch(scriptURL+"?action=respon", { method: 'POST', body: JSON.stringify(data) })
+    .then(r => alert("Respon berhasil disimpan"))
+    .then(() => { loadData(); closeModal(); })
+    .catch(err => alert("Error: " + err));
+  e.target.reset();
+});
+
 // Update Statistik
 function updateChart(data) {
   let counts = {Mahasiswa:0, Dosen:0, Tendik:0};
+  let selesai=0, proses=0, belum=0;
+
   data.slice(1).forEach(row => {
-    if (row[1] in counts) counts[row[1]]++;
+    if (row[2] in counts) counts[row[2]]++;
+    if (row[5] === "Selesai") selesai++;
+    else if (row[5] === "Dalam Proses") proses++;
+    else belum++;
   });
+
   const ctx = document.getElementById('chartAduan').getContext('2d');
   new Chart(ctx, {
     type: 'bar',
@@ -154,11 +186,16 @@ function updateChart(data) {
       }]
     }
   });
+
+  document.getElementById("summary").innerHTML = `
+    <p>Total Aduan: ${data.length-1}</p>
+    <p>Selesai: ${selesai}</p>
+    <p>Dalam Proses: ${proses}</p>
+    <p>Belum Diproses: ${belum}</p>
+  `;
 }
 
-loadData(); // jalankan saat halaman dibuka
+loadData(); // pertama kali load
 </script>
 </body>
 </html>
-
-
