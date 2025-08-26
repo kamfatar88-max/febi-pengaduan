@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+INDEXHTML  <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -66,7 +66,7 @@
         <th>Nama</th>
         <th>Jabatan</th>
         <th>Isi Aduan</th>
-        <th>Respon</th>
+        <th>Tanggal</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -80,7 +80,7 @@
 </div>
 
 <script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbzuPojSJXBMhQNVmm6f_KBvL7dCX2Kio0oja4vKYqjaaSOCi1tCXh_15UVce7SGMgmt/exec";
+const scriptURL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
 
 // Tab navigasi
 function showTab(tabId) {
@@ -122,19 +122,41 @@ document.getElementById('formRespon').addEventListener('submit', e => {
   e.target.reset();
 });
 
-// Statistik (dummy, bisa tarik langsung dari Google Sheets pakai API JSON)
-const ctx = document.getElementById('chartAduan').getContext('2d');
-new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: ['Mahasiswa', 'Dosen', 'Tendik'],
-    datasets: [{
-      label: 'Jumlah Aduan',
-      data: [5, 3, 2], // nanti bisa diisi dari data real
-    }]
-  }
-});
+// Load Data Aduan (real-time)
+async function loadData() {
+  let res = await fetch(scriptURL+"?sheet=Aduan");
+  let data = await res.json();
+  let tbody = document.querySelector("#tableData tbody");
+  tbody.innerHTML = "";
+  data.slice(1).forEach(row => {
+    let tr = document.createElement("tr");
+    tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td>`;
+    tbody.appendChild(tr);
+  });
+  updateChart(data);
+}
+
+// Update Statistik
+function updateChart(data) {
+  let counts = {Mahasiswa:0, Dosen:0, Tendik:0};
+  data.slice(1).forEach(row => {
+    if (row[1] in counts) counts[row[1]]++;
+  });
+  const ctx = document.getElementById('chartAduan').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(counts),
+      datasets: [{
+        label: 'Jumlah Aduan',
+        data: Object.values(counts),
+        backgroundColor: ['#007bff','#28a745','#ffc107']
+      }]
+    }
+  });
+}
+
+loadData(); // jalankan saat halaman dibuka
 </script>
 </body>
 </html>
-
