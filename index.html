@@ -1,450 +1,139 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Layanan Pengaduan FEBI UINSI</title>
+  <meta charset="UTF-8">
+  <title>Dashboard Layanan Pengaduan FEBI</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f4f7fc;
-      color: #333;
-    }
-    .container {
-      max-width: 1200px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-    h1 {
-      text-align: center;
-      color: #003366;
-      margin-bottom: 10px;
-    }
-    .subtitle {
-      text-align: center;
-      color: #007bff;
-      font-size: 1.1em;
-      margin-bottom: 20px;
-    }
-    .tabs {
-      display: flex;
-      gap: 5px;
-      margin-bottom: 20px;
-    }
-    .tab {
-      padding: 12px 20px;
-      cursor: pointer;
-      background: #e9ecef;
-      border-radius: 8px 8px 0 0;
-      font-weight: 600;
-    }
-    .tab:hover { background: #dde2e6; }
-    .tab.active {
-      background: #007bff;
-      color: white;
-    }
-    .tab-content {
-      display: none;
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 0 0 8px 8px;
-      background: #fdfdfd;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    input, select, textarea, button {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-    th { background: #f1f1f1; }
-    .no-data {
-      text-align: center;
-      padding: 30px;
-      color: #888;
-    }
-    .form-respon {
-      margin-top: 20px;
-      padding: 20px;
-      border: 1px dashed #007bff;
-      border-radius: 8px;
-      background: #f8f9ff;
-    }
-    .export-btn {
-      background: #28a745;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; background: #f8f9fa; }
+    .tabs { display: flex; background: #003366; color: white; }
+    .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; }
+    .tab.active { background: #0055a5; }
+    .content { display: none; padding: 20px; }
+    .content.active { display: block; }
+    form { margin-top: 20px; }
+    input, textarea, select { width: 100%; padding: 8px; margin: 5px 0; }
+    button { padding: 10px 20px; background: #0055a5; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0077cc; }
+    table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+    table, th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Layanan Pengaduan FEBI UINSI</h1>
-    <p class="subtitle">Fakultas Ekonomi dan Bisnis Islam - Universitas Islam Negeri Samarinda</p>
 
-    <div class="tabs">
-      <div class="tab active" onclick="openTab('input')">Input Pengaduan</div>
-      <div class="tab" onclick="openTab('respon')">Respon Pengaduan</div>
-      <div class="tab" onclick="openTab('data')">Data Pengaduan</div>
-      <div class="tab" onclick="openTab('statistik')">Statistik</div>
-    </div>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('aduan')">Input Aduan</div>
+  <div class="tab" onclick="showTab('respon')">Input Respon</div>
+  <div class="tab" onclick="showTab('data')">Data Aduan</div>
+  <div class="tab" onclick="showTab('statistik')">Statistik</div>
+</div>
 
-    <div id="input" class="tab-content active">
-      <h2>Formulir Pengaduan</h2>
-      <input type="text" id="nama" placeholder="Nama Lengkap" required />
-      <select id="jabatan" required>
-        <option value="">Pilih Jabatan</option>
-        <option value="Mahasiswa">Mahasiswa</option>
-        <option value="Dosen">Dosen</option>
-        <option value="Tendik">Tendik</option>
-      </select>
-      <textarea id="isiAduan" placeholder="Jelaskan pengaduan Anda..." rows="5" required></textarea>
-      <button onclick="submitPengaduan()">Kirim Pengaduan</button>
-    </div>
+<!-- Tab Input Aduan -->
+<div id="aduan" class="content active">
+  <h2>Form Pengaduan</h2>
+  <form id="formAduan">
+    <input type="text" name="nama" placeholder="Nama" required>
+    <select name="jabatan" required>
+      <option value="">-- Pilih Jabatan --</option>
+      <option value="Mahasiswa">Mahasiswa</option>
+      <option value="Tendik">Tendik</option>
+      <option value="Dosen">Dosen</option>
+    </select>
+    <textarea name="isi" placeholder="Isi Aduan" required></textarea>
+    <button type="submit">Kirim Aduan</button>
+  </form>
+</div>
 
-    <div id="respon" class="tab-content">
-      <h2>Daftar Pengaduan untuk Ditanggapi</h2>
-      <table id="tabelRespon">
-        <thead>
-          <tr>
-            <th>Nama</th>
-            <th>Jabatan</th>
-            <th>Aduan</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+<!-- Tab Input Respon -->
+<div id="respon" class="content">
+  <h2>Form Respon Aduan</h2>
+  <form id="formRespon">
+    <input type="text" name="identifikasi" placeholder="Identifikasi Masalah" required>
+    <input type="text" name="sumber" placeholder="Sumber Masalah" required>
+    <input type="text" name="rencana" placeholder="Rencana Aksi" required>
+    <input type="text" name="waktu" placeholder="Waktu Penyelesaian" required>
+    <input type="text" name="penanggungjawab" placeholder="Penanggungjawab" required>
+    <button type="submit">Kirim Respon</button>
+  </form>
+</div>
 
-    <div id="data" class="tab-content">
-      <h2>Matrik Data Pengaduan</h2>
-      <button class="export-btn" onclick="exportToCSV()">📤 Export ke CSV</button>
-      <table id="tabelData">
-        <thead>
-          <tr>
-            <th>Nama</th>
-            <th>Jabatan</th>
-            <th>Aduan</th>
-            <th>Identifikasi</th>
-            <th>Sumber</th>
-            <th>Rencana Aksi</th>
-            <th>Waktu</th>
-            <th>Penanggung Jawab</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+<!-- Tab Data -->
+<div id="data" class="content">
+  <h2>Data Pengaduan</h2>
+  <table id="tableData">
+    <thead>
+      <tr>
+        <th>Nama</th>
+        <th>Jabatan</th>
+        <th>Isi Aduan</th>
+        <th>Respon</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
-    <div id="statistik" class="tab-content">
-      <h2>Statistik Pengaduan</h2>
-      <div style="background:#e3f2fd; padding:15px; border-radius:8px;">
-        <p><strong>Total Pengaduan:</strong> <span id="total">0</span></p>
-        <p><strong>Sudah Ditanggapi:</strong> <span id="sudah">0</span></p>
-        <p><strong>Belum Ditanggapi:</strong> <span id="belum">0</span></p>
-        <p><strong>Menurut Jabatan:</strong></p>
-        <ul id="statJabatan"><li>Belum ada data</li></ul>
-      </div>
-    </div>
-  </div>
+<!-- Tab Statistik -->
+<div id="statistik" class="content">
+  <h2>Statistik Pengaduan</h2>
+  <canvas id="chartAduan"></canvas>
+</div>
 
-  <script>
-    // 🔁 GANTI DENGAN URL WEB APP ANDA
-    const API_URL = "https://script.google.com/macros/s/AKfycbwqeMlyP8wK8fBlf1wqLBvIxnEB5PJIn0r8RS-V5eF_37Vizl0yE7IJxa97yI0Y0kEr/exec";
+<script>
+const scriptURL = "PASTE_GOOGLE_APPS_SCRIPT_URL_HERE";
 
-    let allData = [];
+// Tab navigasi
+function showTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
 
-    // --- 🔧 loadData() ---
-    async function loadData() {
-      const timestamp = new Date().getTime();
-      const url = `${API_URL}?t=${timestamp}`;
+// Kirim Aduan
+document.getElementById('formAduan').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = [
+    e.target.nama.value,
+    e.target.jabatan.value,
+    e.target.isi.value,
+    new Date().toLocaleString()
+  ];
+  fetch(scriptURL+"?sheet=Aduan", { method: 'POST', body: JSON.stringify(data) })
+    .then(r => alert("Aduan berhasil dikirim"))
+    .catch(err => alert("Error: " + err));
+  e.target.reset();
+});
 
-      try {
-        const res = await fetch(url, { method: "GET", mode: "cors" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+// Kirim Respon
+document.getElementById('formRespon').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = [
+    e.target.identifikasi.value,
+    e.target.sumber.value,
+    e.target.rencana.value,
+    e.target.waktu.value,
+    e.target.penanggungjawab.value,
+    new Date().toLocaleString()
+  ];
+  fetch(scriptURL+"?sheet=Respon", { method: 'POST', body: JSON.stringify(data) })
+    .then(r => alert("Respon berhasil dikirim"))
+    .catch(err => alert("Error: " + err));
+  e.target.reset();
+});
 
-        const text = await res.text();
-        let jsonData;
-
-        try {
-          jsonData = JSON.parse(text);
-        } catch (e) {
-          console.error("❌ Bukan JSON:", text);
-          alert("Server mengembalikan data tidak valid. Cek GAS.");
-          return;
-        }
-
-        if (!Array.isArray(jsonData)) {
-          console.error("❌ Data bukan array:", jsonData);
-          return;
-        }
-
-        allData = jsonData;
-        console.log("✅ Data dimuat:", allData);
-
-        renderRespon();
-        renderData();
-        renderStatistik();
-
-      } catch (e) {
-        console.error("❌ Gagal muat ", e);
-        const msg = `<tr><td colspan="5" class="no-data">Gagal koneksi. Cek URL GAS atau izin.</td></tr>`;
-        const tbody = document.querySelector("#respon tbody");
-        if (tbody) tbody.innerHTML = msg;
-      }
-    }
-
-    function openTab(tabName) {
-      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      document.getElementById(tabName).classList.add("active");
-      document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add("active");
-    }
-
-    async function submitPengaduan() {
-      const nama = document.getElementById("nama").value.trim();
-      const jabatan = document.getElementById("jabatan").value;
-      const isiAduan = document.getElementById("isiAduan").value.trim();
-
-      if (!nama || !jabatan || !isiAduan) {
-        alert("Semua field wajib diisi!");
-        return;
-      }
-
-      const data = {
-        type: "pengaduan",
-        id: Date.now().toString(),
-        nama,
-        jabatan,
-        isiAduan
-      };
-
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify(data)
-        });
-
-        alert("Pengaduan berhasil dikirim!");
-        document.getElementById("nama").value = "";
-        document.getElementById("jabatan").value = "";
-        document.getElementById("isiAduan").value = "";
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await loadData();
-
-      } catch (e) {
-        alert("Terkirim (offline), akan disinkronkan saat online.");
-        console.warn("Offline:", e);
-        await loadData();
-      }
-    }
-
-    function showResponseForm(id, nama, aduan) {
-      const container = document.querySelector("#respon");
-      const formHtml = `
-        <div class="form-respon" id="form-respon">
-          <h3>Respon untuk: ${nama}</h3>
-          <p><strong>Aduan:</strong> ${aduan}</p>
-          <input type="hidden" id="respon-id" value="${id}" />
-          <input type="text" id="identifikasi" placeholder="Identifikasi Masalah" required/>
-          <input type="text" id="sumber" placeholder="Sumber Masalah" />
-          <textarea id="rencana" placeholder="Rencana Aksi" rows="3" required></textarea>
-          <input type="date" id="waktu" required />
-          <input type="text" id="penanggungJawab" placeholder="Penanggung Jawab" required/>
-          <button onclick="saveResponse()">Simpan Respon</button>
-          <button type="button" style="background:#6c757d;margin-top:10px;" onclick="closeResponseForm()">Batal</button>
-        </div>
-      `;
-      container.insertAdjacentHTML("beforeend", formHtml);
-    }
-
-    async function saveResponse() {
-      const id = document.getElementById("respon-id").value;
-      const identifikasi = document.getElementById("identifikasi").value.trim();
-      const sumber = document.getElementById("sumber").value.trim();
-      const rencana = document.getElementById("rencana").value.trim();
-      const waktu = document.getElementById("waktu").value;
-      const penanggungJawab = document.getElementById("penanggungJawab").value.trim();
-
-      if (!identifikasi || !rencana || !waktu || !penanggungJawab) {
-        alert("Semua field wajib diisi!");
-        return;
-      }
-
-      const data = {
-        type: "respon",
-        id,
-        identifikasi,
-        sumber,
-        rencana,
-        waktu,
-        penanggungJawab
-      };
-
-      console.log("Mengirim respons:", data);
-
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify(data)
-        });
-
-        const text = await res.text();
-        console.log("Respon mentah dari GAS:", text);
-
-        if (text.includes("error")) {
-          alert("Gagal menyimpan: Lihat console (F12) untuk detail.");
-          return;
-        }
-
-        alert("Respons berhasil disimpan!");
-        closeResponseForm();
-
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        await loadData();
-
-      } catch (e) {
-        console.error("Fetch error:", e);
-        alert("Gagal kirim. Cek koneksi atau console (F12).");
-      }
-    }
-
-    function closeResponseForm() {
-      const form = document.getElementById("form-respon");
-      if (form) form.remove();
-    }
-
-    function renderRespon() {
-      const tbody = document.querySelector("#tabelRespon tbody");
-      tbody.innerHTML = "";
-
-      if (allData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="no-data">Belum ada pengaduan.</td></tr>`;
-        return;
-      }
-
-      allData.forEach(item => {
-        const status = item.identifikasi && item.identifikasi.trim() !== "" ? "Selesai" : "Belum";
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${item.nama}</td>
-          <td>${item.jabatan}</td>
-          <td>${item.isiAduan.substring(0, 50)}...</td>
-          <td><span style="color:${status==='Selesai'?'green':'red'}; font-weight:bold;">${status}</span></td>
-          <td><button onclick="showResponseForm('${item.id}', '${item.nama.replace(/'/g, "\\'")}', '${item.isiAduan.replace(/'/g, "\\'")}')">Tanggapi</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderData() {
-      const tbody = document.querySelector("#tabelData tbody");
-      tbody.innerHTML = "";
-
-      if (allData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="no-data">Belum ada data pengaduan.</td></tr>`;
-        return;
-      }
-
-      allData.forEach(item => {
-        const status = item.identifikasi && item.identifikasi.trim() !== "" ? "Selesai" : "Belum";
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${item.nama}</td>
-          <td>${item.jabatan}</td>
-          <td>${item.isiAduan.substring(0, 40)}...</td>
-          <td>${item.identifikasi || "-"}</td>
-          <td>${item.sumber || "-"}</td>
-          <td>${item.rencana || "-"}</td>
-          <td>${item.waktu || "-"}</td>
-          <td>${item.penanggungJawab || "-"}</td>
-          <td style="color:${status==='Selesai'?'green':'red'}; font-weight:bold;">${status}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderStatistik() {
-      const total = allData.length;
-      const sudah = allData.filter(d => d.identifikasi && d.identifikasi.trim() !== "").length;
-      const belum = total - sudah;
-
-      document.getElementById("total").textContent = total;
-      document.getElementById("sudah").textContent = sudah;
-      document.getElementById("belum").textContent = belum;
-
-      const ul = document.getElementById("statJabatan");
-      ul.innerHTML = "";
-
-      const count = {};
-      allData.forEach(d => {
-        if (d.jabatan) count[d.jabatan] = (count[d.jabatan] || 0) + 1;
-      });
-
-      if (Object.keys(count).length === 0) {
-        ul.innerHTML = "<li>Belum ada data</li>";
-      } else {
-        for (const [j, c] of Object.entries(count)) {
-          const li = document.createElement("li");
-          li.textContent = `${j}: ${c} pengaduan`;
-          ul.appendChild(li);
-        }
-      }
-    }
-
-    function exportToCSV() {
-      if (allData.length === 0) {
-        alert("Tidak ada data untuk diekspor.");
-        return;
-      }
-
-      let csv = "Nama,Jabatan,Aduan,Identifikasi,Sumber,Rencana Aksi,Waktu Penyelesaian,Penanggung Jawab,Status\n";
-      allData.forEach(d => {
-        const status = d.identifikasi && d.identifikasi.trim() !== "" ? "Selesai" : "Belum";
-        csv += `"${d.nama}","${d.jabatan}","${d.isiAduan.replace(/"/g, '""')}","${d.identifikasi || '-'}","${d.sumber || '-'}","${d.rencana || '-'}","${d.waktu || '-'}","${d.penanggungJawab || '-'}","${status}"\n`;
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `pengaduan_febi_uinsi_${new Date().toISOString().slice(0,10)}.csv`;
-      a.click();
-    }
-
-    // Muat data saat halaman siap
-    document.addEventListener("DOMContentLoaded", () => {
-      setTimeout(loadData, 500);
-    });
-  </script>
+// Statistik (dummy, bisa tarik langsung dari Google Sheets pakai API JSON)
+const ctx = document.getElementById('chartAduan').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: ['Mahasiswa', 'Dosen', 'Tendik'],
+    datasets: [{
+      label: 'Jumlah Aduan',
+      data: [5, 3, 2], // nanti bisa diisi dari data real
+    }]
+  }
+});
+</script>
 </body>
 </html>
-
