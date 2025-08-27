@@ -1,4 +1,5 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzUgYqRb4SGSBPDUKOL-J2OFiDJqSZ2JVAq8k0RsGPeEpvG3N2hhj8x-CdHuq9HEOqy/exec"; // GANTI DENGAN DEPLOY URL ANDA
+// script.js - DIPERBAHARUI
+const API_URL = "https://script.google.com/macros/s/AKfycbwA94ooB3xq3sWo4-X8pG0NyMul795y09TWcRwJQXKjoOy-zlEn1VPpzsufRkG_dVwm/exec"; // GANTI DENGAN URL DEPLOY ANDA
 
 // Tab Switching
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -17,161 +18,299 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 // Submit Aduan
 document.getElementById("formAduan").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const nama = document.getElementById("nama").value;
+  const nama = document.getElementById("nama").value.trim();
   const jabatan = document.getElementById("jabatan").value;
-  const isi = document.getElementById("isi").value;
+  const isi = document.getElementById("isi").value.trim();
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({
-      action: "submitAduan",
-      nama,
-      jabatan,
-      isi
-    })
-  });
+  if (!nama || !jabatan || !isi) {
+    alert("Semua field harus diisi!");
+    return;
+  }
 
-  const data = await res.json();
-  if (data.status === "success") {
-    document.getElementById("statusAduan").textContent = `Aduan berhasil dikirim! ID: ${data.id}`;
-    document.getElementById("formAduan").reset();
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "submitAduan",
+        nama,
+        jabatan,
+        isi
+      })
+    });
+
+    const text = await res.text(); // Debug: lihat respons mentah
+    console.log("Raw response:", text);
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      throw new Error("Invalid JSON response from server");
+    }
+
+    if (data.status === "success") {
+      document.getElementById("statusAduan").textContent = `✅ Aduan berhasil dikirim! ID: ${data.id}`;
+      document.getElementById("formAduan").reset();
+    } else {
+      throw new Error(data.message || "Gagal kirim aduan");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    document.getElementById("statusAduan").textContent = `❌ Gagal: ${error.message}`;
   }
 });
 
-// Load Aduan for Respon
+// Load Aduan untuk Respon
 async function loadAduanForRespon() {
-  const res = await fetch(API_URL + "?action=getAllAduan");
-  const aduanList = await res.json();
-  const responDiv = document.getElementById("listAduanRespon");
-  responDiv.innerHTML = "";
+  const container = document.getElementById("listAduanRespon");
+  container.innerHTML = "Memuat data...";
 
-  aduanList.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "aduan-item";
-    div.innerHTML = `
-      <h4>ID: ${item.id} | ${item.nama} (${item.jabatan})</h4>
-      <p><strong>Aduan:</strong> ${item.isi}</p>
-      <button class="btn-respon" onclick="showResponForm(${item.id})">Beri Respon</button>
-      <div id="responForm-${item.id}"></div>
-    `;
-    responDiv.appendChild(div);
-  });
+  try {
+    const res = await fetch(API_URL + "?action=getAllAduan");
+    const text = await res.text();
+    console.log("Raw aduan:", text);
+
+    let aduanList;
+    try {
+      aduanList = JSON.parse(text);
+    } catch (err) {
+      container.innerHTML = "❌ Gagal parsing data aduan.";
+      return;
+    }
+
+    if (!Array.isArray(aduanList) || aduanList.length === 0) {
+      container.innerHTML = "Belum ada aduan.";
+      return;
+    }
+
+    container.innerHTML = "";
+    aduanList.forEach(item => {
+      const id = item.id || item["id"];
+      const nama = item.nama || item["nama"];
+      const jabatan = item.jabatan || item["jabatan"];
+      const isi = item.isi_aduan || item["isi_aduan"] || item.isi;
+
+      const div = document.createElement("div");
+      div.className = "aduan-item";
+      div.innerHTML = `
+        <h4>ID: ${id} | ${nama} (${jabatan})</h4>
+        <p><strong>Aduan:</strong> ${isi}</p>
+        <button class="btn-respon" onclick="showResponForm(${id})">Beri Respon</button>
+        <div id="responForm-${id}"></div>
+      `;
+      container.appendChild(div);
+    });
+  } catch (error) {
+    console.error("Error load aduan:", error);
+    container.innerHTML = "❌ Gagal memuat data aduan.";
+  }
 }
 
+// Tampilkan Form Respon
 function showResponForm(id) {
   const formDiv = document.getElementById(`responForm-${id}`);
   formDiv.innerHTML = `
     <div class="respon-form">
-      <label>Identifikasi Masalah: <textarea id="identifikasi-${id}" required></textarea></label>
-      <label>Sumber Masalah: <input type="text" id="sumber-${id}" required /></label>
-      <label>Rencana Aksi: <textarea id="rencana-${id}" required></textarea></label>
-      <label>Waktu Penyelesaian: <input type="date" id="waktu-${id}" required /></label>
-      <label>Penanggung Jawab: <input type="text" id="penanggungjawab-${id}" required /></label>
-      <button onclick="submitRespon(${id})">Simpan Respon</button>
+      <label>Identifikasi Masalah:<br><textarea id="identifikasi-${id}" required></textarea></label>
+      <label>Sumber Masalah:<br><input type="text" id="sumber-${id}" required /></label>
+      <label>Rencana Aksi:<br><textarea id="rencana-${id}" required></textarea></label>
+      <label>Waktu Penyelesaian:<br><input type="date" id="waktu-${id}" required /></label>
+      <label>Penanggung Jawab:<br><input type="text" id="penanggungjawab-${id}" required /></label>
+      <button type="button" onclick="submitRespon(${id})">Simpan Respon</button>
     </div>
   `;
 }
 
+// Kirim Respon
 async function submitRespon(id) {
-  const identifikasi = document.getElementById(`identifikasi-${id}`).value;
-  const sumber = document.getElementById(`sumber-${id}`).value;
-  const rencana = document.getElementById(`rencana-${id}`).value;
+  const identifikasi = document.getElementById(`identifikasi-${id}`).value.trim();
+  const sumber = document.getElementById(`sumber-${id}`).value.trim();
+  const rencana = document.getElementById(`rencana-${id}`).value.trim();
   const waktu = document.getElementById(`waktu-${id}`).value;
-  const penanggungjawab = document.getElementById(`penanggungjawab-${id}`).value;
+  const penanggungjawab = document.getElementById(`penanggungjawab-${id}`).value.trim();
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({
-      action: "submitRespon",
-      id,
-      identifikasi,
-      sumber,
-      rencana,
-      waktu,
-      penanggungjawab
-    })
-  });
+  if (!identifikasi || !sumber || !rencana || !waktu || !penanggungjawab) {
+    alert("Semua field respon harus diisi!");
+    return;
+  }
 
-  const data = await res.json();
-  if (data.status === "success") {
-    alert("Respon berhasil disimpan!");
-    document.getElementById(`responForm-${id}`).innerHTML = "<p style='color:green'>Respon telah disimpan.</p>";
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "submitRespon",
+        id,
+        identifikasi,
+        sumber,
+        rencana,
+        waktu,
+        penanggungjawab
+      })
+    });
+
+    const data = await res.json();
+    if (data.status === "success") {
+      alert("✅ Respon berhasil disimpan!");
+      document.getElementById(`responForm-${id}`).innerHTML = "<p style='color:green'>Respon telah disimpan.</p>";
+    } else {
+      alert("❌ Gagal menyimpan respon.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    alert("❌ Gagal kirim respon.");
   }
 }
 
-// Load Data Aduan + Respon
+// Muat Data Aduan + Respon
 async function loadDataAduan() {
-  const [aduanRes, responRes] = await Promise.all([
-    fetch(API_URL + "?action=getAllAduan").then(r => r.json()),
-    fetch(API_URL + "?action=getAllRespon").then(r => r.json())
-  ]);
-
   const container = document.getElementById("tabelData");
-  let html = "<table border='1' cellpadding='8' cellspacing='0' style='width:100%; border-collapse: collapse;'>";
-  html += `<tr style="background:#3498db; color:white;">
-    <th>ID</th><th>Nama</th><th>Jabatan</th><th>Aduan</th><th>Identifikasi</th><th>Sumber</th><th>Rencana</th><th>Waktu</th><th>Penanggung Jawab</th>
-  </tr>`;
+  container.innerHTML = "Memuat data gabungan...";
 
-  aduanList.forEach(aduan => {
-    const respon = responRes[aduan.id] || {};
-    html += `<tr>
-      <td>${aduan.id}</td>
-      <td>${aduan.nama}</td>
-      <td>${aduan.jabatan}</td>
-      <td>${aduan.isi}</td>
-      <td>${respon.identifikasi || "-"}</td>
-      <td>${respon.sumber || "-"}</td>
-      <td>${respon.rencana || "-"}</td>
-      <td>${respon.waktu || "-"}</td>
-      <td>${respon.penanggungjawab || "-"}</td>
-    </tr>`;
-  });
+  try {
+    const [aduanRes, responRes] = await Promise.all([
+      fetch(API_URL + "?action=getAllAduan").then(r => r.text()),
+      fetch(API_URL + "?action=getAllRespon").then(r => r.text())
+    ]);
 
-  html += "</table>";
-  container.innerHTML = html;
+    let aduanList, responMap;
+    try {
+      aduanList = JSON.parse(aduanRes);
+    } catch (e) {
+      container.innerHTML = "❌ Gagal parsing data aduan.";
+      return;
+    }
+    try {
+      responMap = JSON.parse(responRes);
+    } catch (e) {
+      responMap = {};
+    }
+
+    if (!Array.isArray(aduanList)) aduanList = [];
+
+    let html = `
+      <table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse: collapse; font-size:14px;">
+        <tr style="background:#2c3e50; color:white;">
+          <th>ID</th>
+          <th>Nama</th>
+          <th>Jabatan</th>
+          <th>Aduan</th>
+          <th>Identifikasi</th>
+          <th>Sumber</th>
+          <th>Rencana</th>
+          <th>Waktu</th>
+          <th>Penanggung Jawab</th>
+        </tr>
+    `;
+
+    aduanList.forEach(item => {
+      const id = item.id || item["id"];
+      const respon = responMap[id] || {};
+      html += `
+        <tr>
+          <td>${id}</td>
+          <td>${item.nama || "-"}</td>
+          <td>${item.jabatan || "-"}</td>
+          <td>${item.isi || item["isi_aduan"] || "-"}</td>
+          <td>${respon.identifikasi || "-"}</td>
+          <td>${respon.sumber || "-"}</td>
+          <td>${respon.rencana || "-"}</td>
+          <td>${respon.waktu || "-"}</td>
+          <td>${respon.penanggungjawab || "-"}</td>
+        </tr>
+      `;
+    });
+
+    html += "</table>";
+    container.innerHTML = html;
+  } catch (error) {
+    console.error("Error:", error);
+    container.innerHTML = "❌ Gagal memuat data gabungan.";
+  }
 }
 
-// Load Statistik
+// Statistik
 async function loadStatistik() {
-  const [aduanList, responMap] = await Promise.all([
-    fetch(API_URL + "?action=getAllAduan").then(r => r.json()),
-    fetch(API_URL + "?action=getAllRespon").then(r => r.json())
-  ]);
+  const container = document.getElementById("chartContainer");
+  container.innerHTML = `
+    <canvas id="jabatanChart" width="400" height="300"></canvas>
+    <canvas id="statusChart" width="400" height="300"></canvas>
+  `;
 
-  // Statistik Jabatan
-  const jabatanCount = { Mahasiswa: 0, Tendik: 0, Dosen: 0 };
-  aduanList.forEach(a => jabatanCount[a.jabatan]++);
+  try {
+    const [aduanRes, responRes] = await Promise.all([
+      fetch(API_URL + "?action=getAllAduan").then(r => r.text()),
+      fetch(API_URL + "?action=getAllRespon").then(r => r.text())
+    ]);
 
-  // Statistik Status
-  const total = aduanList.length;
-  const selesai = Object.keys(responMap).length;
-  const proses = aduanList.filter(a => !responMap[a.id]).length;
-  const belum = total - selesai;
+    let aduanList = [];
+    let responMap = {};
 
-  // Chart Jabatan
-  new Chart(document.getElementById("jabatanChart"), {
-    type: "pie",
-    data: {
-      labels: Object.keys(jabatanCount),
-      datasets: [{
-        data: Object.values(jabatanCount),
-        backgroundColor: ["#3498db", "#e74c3c", "#f39c12"]
-      }]
-    },
-    options: { responsive: true, plugins: { title: { display: true, text: "Jumlah Aduan per Jabatan" } } }
-  });
+    try {
+      aduanList = JSON.parse(aduanRes);
+    } catch (e) {
+      console.error("Parse error aduan:", e);
+    }
 
-  // Chart Status
-  new Chart(document.getElementById("statusChart"), {
-    type: "bar",
-    data: {
-      labels: ["Selesai", "Dalam Proses", "Belum Ditanggapi"],
-      datasets: [{
-        label: "Jumlah",
-        data: [selesai, proses, belum],
-        backgroundColor: ["#27ae60", "#f39c12", "#e74c3c"]
-      }]
-    },
-    options: { responsive: true, plugins: { title: { display: true, text: "Status Penyelesaian Aduan" } } }
-  });
+    try {
+      responMap = JSON.parse(responRes);
+    } catch (e) {
+      console.error("Parse error respon:", e);
+    }
+
+    if (!Array.isArray(aduanList)) aduanList = [];
+
+    // Hitung per jabatan
+    const jabatanCount = { Mahasiswa: 0, Tendik: 0, Dosen: 0 };
+    aduanList.forEach(a => {
+      const j = a.jabatan || a["jabatan"];
+      if (jabatanCount.hasOwnProperty(j)) jabatanCount[j]++;
+    });
+
+    // Hitung status
+    const total = aduanList.length;
+    const selesai = Object.keys(responMap).length;
+    const proses = total - selesai;
+
+    // Chart 1: Jabatan
+    new Chart(document.getElementById("jabatanChart"), {
+      type: "pie",
+      data: {
+        labels: Object.keys(jabatanCount),
+        datasets: [{
+          data: Object.values(jabatanCount),
+          backgroundColor: ["#3498db", "#e74c3c", "#f39c12"]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' },
+          title: { display: true, text: "Distribusi Aduan per Jabatan" }
+        }
+      }
+    });
+
+    // Chart 2: Status
+    new Chart(document.getElementById("statusChart"), {
+      type: "bar",
+      data: {
+        labels: ["Selesai", "Dalam Proses"],
+        datasets: [{
+          label: "Jumlah Aduan",
+          data: [selesai, proses],
+          backgroundColor: ["#27ae60", "#f39c12"]
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } },
+        plugins: {
+          title: { display: true, text: "Status Penyelesaian Aduan" }
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Statistik error:", error);
+    document.getElementById("chartContainer").innerHTML = "<p>❌ Gagal memuat statistik.</p>";
+  }
 }
