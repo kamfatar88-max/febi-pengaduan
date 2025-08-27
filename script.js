@@ -1,5 +1,5 @@
 // script.js - DIPERBAHARUI
-const API_URL = "https://script.google.com/macros/s/AKfycbwA94ooB3xq3sWo4-X8pG0NyMul795y09TWcRwJQXKjoOy-zlEn1VPpzsufRkG_dVwm/exec"; // GANTI DENGAN URL DEPLOY ANDA
+const API_URL = "https://script.google.com/macros/s/AKfycbziQPyXZQEa9uW-urpATz824Q0mOjO-lRLOjyhyiqGPOR-cX0QTqhV7yS9VR0wQM3ga/exec"; // GANTI DENGAN URL DEPLOY ANDA
 
 // Tab Switching
 document.querySelectorAll(".tab-btn").forEach(btn => {
