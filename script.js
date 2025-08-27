@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXXXXXXXXXXX/exec"; // GANTI DENGAN DEPLOY URL ANDA
+const API_URL = "https://script.google.com/macros/s/AKfycbzUgYqRb4SGSBPDUKOL-J2OFiDJqSZ2JVAq8k0RsGPeEpvG3N2hhj8x-CdHuq9HEOqy/exec"; // GANTI DENGAN DEPLOY URL ANDA
 
 // Tab Switching
 document.querySelectorAll(".tab-btn").forEach(btn => {
